@@ -1,72 +1,45 @@
-import React, { Components } from 'react' ;
-import AppBar from './Components/Appbar';
-import SearchResult from '.Component/SearchResult' ;
+import React from 'react';
+import firebase from 'firebase';
+import BookCard from './BookCard'
+import Grid from '@material-ui/core/Grid';
 
-class SearchResults extends Components {
-    firstSearch() {
-        this.searchDirectory(this.itemsRef);
-      }
-    
-    
-    
-    searchDirectory(itemsRef) {
-    
-    var searchText = this.state.searchText.toString();
-    
-    if (searchText == ""){
-      this.listenForItems(itemsRef);
-    }else{
-      itemsRef.orderByChild("searchable").startAt(searchText).endAt(searchText).on('value', (snap) => {
-    
-        items = [];
-        snap.forEach((child) => {
-          items.push({
-            address: child.val().address,
-            firstLetter: child.val().firstLetter,
-            title: child.val().title,
-          });
-        });
-    
-    
-        this.setState({
-          dataSource: this.state.dataSource.cloneWithRows(items)
-        });
-    
-      });
+
+
+export default class BooksList extends React.Component {
+    state = {
+        books: null,
     }
     
+    constructor() {
+        super();
+        this.fetchBooksFromAPI();
+    }
+
+    fetchBooksFromAPI = () => {
+        const db = firebase.firestore()
+        db.collection('books').limit(9).get().then((response) => {
+            this.setState({ books: response.docs })
+        })
     }
 
     render() {
-        return (
-          <View style={styles.container}>
-          <ScrollView>
-          <SearchBar
-              returnKeyType='search'
-              lightTheme
-              placeholder='Search...'
-              onChangeText={(text) => this.setState({searchText:text})}
-              onSubmitEditing={() => this.firstSearch()}
-          />
-            {
-              this.state.loading &&
-    
-              <ActivityIndicator
-                size="large"
-                color="#3498db"
-                style={styles.activityStyle}
-              />
-    
-            }
-            <ListView
-                dataSource={this.state.dataSource}
-                renderRow={this._renderItem.bind(this)}
-                enableEmptySections={true}
-            />
-            </ScrollView>
-          </View>
-        );
-      }
-    }
+        if (this.state.books === null) {
+            return <h1>Loading ...</h1>
+        }
+        const bookCards =  this.state.books.map(book => (
+            <BookCard
+                title={book.data().Title}
+                img={book.data().img}
+                description={book.data().Description}
+                country={book.data().Country}
+                city={book.data().City}
+             />
+        ))
 
-export default SearchResaults;
+        return (
+            <Grid container spacing={3}>
+                {bookCards}
+            </Grid>
+        )
+    }
+}
